@@ -12,4 +12,5 @@ bench = false
 
 
 [dependencies]
+spin = "0.10.0"
 

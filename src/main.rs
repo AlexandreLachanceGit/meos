@@ -7,7 +7,7 @@ mod allocator;
 mod log;
 
 use alloc::format;
-use core::arch::global_asm;
+use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
 
 use crate::allocator::GlobalAllocator;
@@ -30,18 +30,20 @@ pub extern "C" fn main() -> ! {
         GLOBAL_ALLOCATOR.init(_HEAP_START, _HEAP_END);
     }
     log("Global allocator initialized.\n");
-    log(&format!(
-        "RAM available: {} KB\n",
-        GLOBAL_ALLOCATOR.get_available() / 1024
-    ));
 
     loop {
-        for _ in 0..500000000 {}
+        delay();
 
         log(&format!(
             "RAM available: {} KB\n",
             GLOBAL_ALLOCATOR.get_available() / 1024
         ));
+    }
+}
+
+fn delay() {
+    for _ in 0..i32::MAX {
+        unsafe { asm!("nop") };
     }
 }
 

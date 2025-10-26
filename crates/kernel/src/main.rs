@@ -3,18 +3,18 @@
 
 extern crate alloc;
 
-mod allocator;
 mod log;
 
 use alloc::format;
 use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
 
-use crate::allocator::GlobalAllocator;
+use allocator::{BumpAllocator, GlobalAllocator};
+
 use crate::log::log;
 
 #[global_allocator]
-static GLOBAL_ALLOCATOR: GlobalAllocator = GlobalAllocator::new();
+static GLOBAL_ALLOCATOR: GlobalAllocator<BumpAllocator> = GlobalAllocator::new();
 
 global_asm!(include_str!("entry.s"));
 
@@ -33,11 +33,9 @@ pub extern "C" fn main() -> ! {
 
     loop {
         delay();
+        let available_ram = GLOBAL_ALLOCATOR.get_available() / 1024;
 
-        log(&format!(
-            "RAM available: {} KB\n",
-            GLOBAL_ALLOCATOR.get_available() / 1024
-        ));
+        log(&format!("RAM available: {available_ram} KB\n",));
     }
 }
 

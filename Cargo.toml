@@ -1,16 +1,12 @@
-[package]
-name = "meos"
-version = "0.1.0"
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
 edition = "2024"
 
-[[bin]]
-name = "meos"
-path = "src/main.rs"
-test = false
-doctest = false
-bench = false
+[workspace.dependencies]
+kernel = { path = "./crates/kernel" }
+allocator = { path = "./crates/allocator" }
 
-
-[dependencies]
 spin = "0.10.0"
-

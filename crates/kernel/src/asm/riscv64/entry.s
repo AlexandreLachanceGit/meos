@@ -5,7 +5,8 @@
 
 	.section .text.boot
 
-_start:	la sp, _STACK_PTR
+_start:	
+    la sp, _STACK_PTR
 
     la t0, _HEAP_START
     sd t0, 0(t0)

@@ -1,7 +1,5 @@
 use core::time::Duration;
 
-use crate::csr::Csr;
-
 const TICKS_PER_SECOND: usize = 10_000_000; // TODO: Read this from DTB
 const NANOS_PER_SECOND: u64 = 1_000_000_000;
 
@@ -11,7 +9,7 @@ pub struct Time;
 
 impl Time {
     pub fn get() -> Duration {
-        let ticks = Csr::Time.read() as u64;
+        let ticks = riscv::register::time::read64();
         Duration::from_nanos(ticks * NANOS_PER_TICK)
     }
 }

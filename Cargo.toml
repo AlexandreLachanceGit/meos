@@ -10,3 +10,4 @@ kernel = { path = "./crates/kernel" }
 allocator = { path = "./crates/allocator" }
 
 spin = "0.10.0"
+riscv = "0.15.0"

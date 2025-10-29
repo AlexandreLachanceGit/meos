@@ -14,3 +14,4 @@ bench = false
 allocator.workspace = true
 
 spin.workspace = true
+riscv.workspace = true

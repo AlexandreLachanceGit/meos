@@ -3,7 +3,6 @@
 
 extern crate alloc;
 
-mod csr;
 mod log;
 mod process;
 mod time;
@@ -14,7 +13,6 @@ use core::panic::PanicInfo;
 
 use allocator::{BumpAllocator, GlobalAllocator};
 
-use crate::csr::Csr;
 use crate::log::log;
 use crate::process::ProcessManager;
 use crate::time::Time;
@@ -50,7 +48,7 @@ pub extern "C" fn main() -> ! {
         let available_ram = GLOBAL_ALLOCATOR.get_available() / 1024;
 
         log(&format!("RAM available: {available_ram} KB\n"));
-        log(&format!("Cycle: {}\n", Csr::Cycle.read()));
+        log(&format!("Cycle: {}\n", riscv::register::cycle::read64()));
         log(&format!("Time: {}\n", Time::get().as_millis()));
     }
 }

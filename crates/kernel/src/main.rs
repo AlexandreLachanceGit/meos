@@ -10,6 +10,7 @@ mod time;
 use alloc::format;
 use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
+use dtb::Dtb;
 
 use allocator::{BumpAllocator, GlobalAllocator};
 
@@ -32,14 +33,25 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn main() -> ! {
+pub extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
+    // Single threaded for now
+    if hw_thread_id != 0 {
+        loop {
+            delay();
+        }
+    }
+
     log("Initializing global allocator...\n");
     unsafe {
         GLOBAL_ALLOCATOR.init(_HEAP_START, _HEAP_END);
     }
     log("Global allocator initialized.\n");
 
-    log("Initializing process manager...");
+    let dtb = Dtb::new(dtb_ptr).expect("failed to parse DTB");
+
+    log(format!("DTB Header: {:?}\n", dtb.fdt_header));
+
+    log("Initializing process manager...\n");
     let process_manager = ProcessManager::default();
     log("Process manager initialized.\n");
 
@@ -47,9 +59,9 @@ pub extern "C" fn main() -> ! {
         delay();
         let available_ram = GLOBAL_ALLOCATOR.get_available() / 1024;
 
-        log(&format!("RAM available: {available_ram} KB\n"));
-        log(&format!("Cycle: {}\n", riscv::register::cycle::read64()));
-        log(&format!("Time: {}\n", Time::get().as_millis()));
+        log(format!("RAM available: {available_ram} KB\n"));
+        log(format!("Cycle: {}\n", riscv::register::cycle::read64()));
+        log(format!("Time: {}\n", Time::get().as_millis()));
     }
 }
 
@@ -61,12 +73,17 @@ fn delay() {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    log("KERNEL PANIC: ");
-    if let Some(message) = info.message().as_str() {
-        log(message);
+    if let Some(location) = info.location() {
+        log(format!(
+            "KERNEL PANIC @ line {}, col {} in {}: \nDetails:\n\t{}\n",
+            location.line(),
+            location.column(),
+            location.file(),
+            info.message()
+        ));
     } else {
-        log("Unknown reason");
+        log(format!("KERNEL PANIC:\nDetails:\n\t{}\n", info.message()));
     }
-    log("\n");
+
     loop {}
 }

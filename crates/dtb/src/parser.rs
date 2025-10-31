@@ -1,3 +1,5 @@
+use crate::reserve_entry::{FdtReserveEntry, FtdReserveEntryIter};
+
 const DTB_VERSION: u32 = 17;
 const MAGIC_VALUE: u32 = 0xd00dfeed;
 
@@ -60,5 +62,13 @@ impl Dtb {
             ptr,
             fdt_header: header,
         })
+    }
+
+    pub fn reserve_entry_iter(&self) -> impl Iterator<Item = &'static FdtReserveEntry> {
+        let start_addr = unsafe {
+            self.ptr
+                .byte_offset(self.fdt_header.off_mem_rsvmap as isize)
+        };
+        FtdReserveEntryIter::new(start_addr)
     }
 }

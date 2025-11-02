@@ -3,6 +3,7 @@
 
 extern crate alloc;
 
+mod interupts;
 mod log;
 mod process;
 mod time;
@@ -10,7 +11,7 @@ mod time;
 use alloc::format;
 use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
-use dtb::Dtb;
+use dtb_reader::DtbReader;
 
 use allocator::{BumpAllocator, GlobalAllocator};
 
@@ -47,13 +48,15 @@ pub extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     }
     log("Global allocator initialized.\n");
 
-    let dtb = Dtb::new(dtb_ptr).expect("failed to parse DTB");
+    let dtb = DtbReader::new(dtb_ptr).expect("failed to parse DTB");
 
     log(format!("DTB Header: {:?}\n", dtb.fdt_header));
 
     log("Initializing process manager...\n");
     let process_manager = ProcessManager::default();
     log("Process manager initialized.\n");
+
+    interupts::setup();
 
     loop {
         delay();

@@ -1,5 +1,5 @@
 [package]
-name = "dtb"
+name = "dtb_reader"
 version = "0.1.0"
 edition.workspace = true
 

@@ -24,13 +24,13 @@ pub enum DtbInitError {
     InvalidHeader { expected: u32, found: u32 },
 }
 
-pub struct Dtb {
+pub struct DtbReader {
     ptr: *const u32,
     pub fdt_header: FdtHeader,
 }
 
-impl Dtb {
-    pub fn new(ptr: *const u32) -> Result<Dtb, DtbInitError> {
+impl DtbReader {
+    pub fn new(ptr: *const u32) -> Result<DtbReader, DtbInitError> {
         let be_header = unsafe { &*(ptr as *const FdtHeader) };
 
         // Header is Big-Endian by default so we need to convert it
@@ -58,7 +58,7 @@ impl Dtb {
             });
         }
 
-        Ok(Dtb {
+        Ok(DtbReader {
             ptr,
             fdt_header: header,
         })

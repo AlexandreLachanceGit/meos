@@ -8,7 +8,7 @@ edition = "2024"
 [workspace.dependencies]
 kernel = { path = "./crates/kernel" }
 allocator = { path = "./crates/allocator" }
-dtb = { path = "./crates/dtb" }
+dtb_reader = { path = "./crates/dtb_reader" }
 
 spin = "0.10.0"
 riscv = "0.15.0"

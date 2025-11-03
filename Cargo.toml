@@ -9,6 +9,7 @@ edition = "2024"
 kernel = { path = "./crates/kernel" }
 allocator = { path = "./crates/allocator" }
 dtb_reader = { path = "./crates/dtb_reader" }
+log = { path = "./crates/log" }
 
 spin = "0.10.0"
 riscv = "0.15.0"

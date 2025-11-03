@@ -9,3 +9,4 @@ bench = false
 doctest = false
 
 [dependencies]
+log.workspace = true

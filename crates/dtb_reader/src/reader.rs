@@ -1,4 +1,8 @@
-use crate::reserve_entry::{FdtReserveEntry, FtdReserveEntryIter};
+use crate::{
+    FdtNode, FdtTreeNode,
+    reserve_entry::{FdtReserveEntry, FtdReserveEntryIter},
+    tree::FdtParsingError,
+};
 
 const DTB_VERSION: u32 = 17;
 const MAGIC_VALUE: u32 = 0xd00dfeed;
@@ -64,11 +68,20 @@ impl DtbReader {
         })
     }
 
-    pub fn reserve_entry_iter(&self) -> impl Iterator<Item = &'static FdtReserveEntry> {
+    pub fn reserve_entry_iter(&self) -> impl Iterator<Item = FdtReserveEntry> {
         let start_addr = unsafe {
             self.ptr
                 .byte_offset(self.fdt_header.off_mem_rsvmap as isize)
         };
         FtdReserveEntryIter::new(start_addr)
+    }
+
+    pub fn root_node(&self) -> Result<impl FdtTreeNode, FdtParsingError> {
+        let start_ptr = unsafe { self.ptr.byte_offset(self.fdt_header.off_dt_struct as isize) };
+        let str_block_ptr = unsafe {
+            self.ptr
+                .byte_offset(self.fdt_header.off_dt_strings as isize) as *const u8
+        };
+        FdtNode::parse(start_ptr, str_block_ptr)
     }
 }

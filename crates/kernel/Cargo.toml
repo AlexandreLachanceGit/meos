@@ -13,6 +13,7 @@ bench = false
 [dependencies]
 allocator.workspace = true
 dtb_reader.workspace = true
+log.workspace = true
 
 spin.workspace = true
 riscv.workspace = true

@@ -4,18 +4,17 @@
 extern crate alloc;
 
 mod interupts;
-mod log;
 mod process;
 mod time;
 
 use alloc::format;
 use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
-use dtb_reader::DtbReader;
+use dtb_reader::{DtbReader, FdtTreeNode};
+use log::log;
 
 use allocator::{BumpAllocator, GlobalAllocator};
 
-use crate::log::log;
 use crate::process::ProcessManager;
 use crate::time::Time;
 
@@ -49,8 +48,13 @@ pub extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     log("Global allocator initialized.\n");
 
     let dtb = DtbReader::new(dtb_ptr).expect("failed to parse DTB");
+    let dtb_root = dtb.root_node().unwrap();
 
     log(format!("DTB Header: {:?}\n", dtb.fdt_header));
+    log(format!("DTB Root Name: {:?}\n", dtb_root.name()));
+    for prop in dtb_root.properties() {
+        log(format!("DTB Property: {:?}\n", prop));
+    }
 
     log("Initializing process manager...\n");
     let process_manager = ProcessManager::default();

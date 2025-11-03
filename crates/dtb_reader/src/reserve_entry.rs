@@ -1,5 +1,5 @@
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct FdtReserveEntry {
     address: u64,
     size: u64,
@@ -21,7 +21,7 @@ impl FtdReserveEntryIter {
 }
 
 impl Iterator for FtdReserveEntryIter {
-    type Item = &'static FdtReserveEntry;
+    type Item = FdtReserveEntry;
 
     fn next(&mut self) -> Option<Self::Item> {
         let entry = unsafe { &*self.start.add(self.curr) };
@@ -32,7 +32,7 @@ impl Iterator for FtdReserveEntryIter {
                 address: 0,
                 size: 0,
             } => None,
-            _ => Some(entry),
+            _ => Some(*entry),
         }
     }
 }

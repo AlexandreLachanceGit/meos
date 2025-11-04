@@ -10,6 +10,11 @@ use crate::tree::{
 pub enum FdtParsingError {
     InvalidToken,
     MalformedTree,
+    UnexpectedToken {
+        expected: FdtTokens,
+        found: FdtTokens,
+    },
+    EarlyEnd,
     InvalidUtf8NodeName(Utf8Error),
 }
 
@@ -28,9 +33,10 @@ pub trait FdtTreeNode {
 #[derive(Debug, Clone, Copy)]
 pub struct FdtNode {
     name: &'static str,
-    props_addr: Option<*const u32>,
-    children_addr: Option<*const u32>,
+    props_ptr: Option<*const u32>,
+    children_ptr: Option<*const u32>,
     str_block_ptr: *const u8,
+    end_ptr: *const u32,
 }
 
 impl FdtTreeNode for FdtNode {
@@ -39,11 +45,11 @@ impl FdtTreeNode for FdtNode {
     }
 
     fn properties(&self) -> impl Iterator<Item = FdtProperty> {
-        PropertyIter::new(self.props_addr, self.str_block_ptr)
+        PropertyIter::new(self.props_ptr, self.str_block_ptr)
     }
 
     fn children(&self) -> impl Iterator<Item = impl FdtTreeNode> {
-        ChildNodeIter::new(self.children_addr)
+        ChildNodeIter::new(self.children_ptr, self.str_block_ptr)
     }
 }
 
@@ -53,77 +59,86 @@ impl FdtNode {
         node_start_ptr: *const u32,
         str_block_ptr: *const u8,
     ) -> Result<FdtNode, FdtParsingError> {
-        let mut curr = node_start_ptr;
+        let mut curr = skip_nops(node_start_ptr)?;
 
         unsafe {
-            curr = skip_nops(curr)?;
-
-            // FDT_BEGIN_NODE token
-            if !matches!(FdtTokens::try_from(*curr)?, FdtTokens::BeginNode) {
-                return Err(FdtParsingError::MalformedTree);
+            let node = FdtTokens::try_from(*curr)?;
+            if !matches!(node, FdtTokens::BeginNode) {
+                return Err(FdtParsingError::UnexpectedToken {
+                    expected: FdtTokens::BeginNode,
+                    found: node,
+                });
             }
             curr = curr.add(1);
 
-            // Node name (null terminated)
             let name_cstr = CStr::from_ptr(curr as *const u8);
             let name = name_cstr.to_str()?;
-
-            // Add (len of string + null terminator) / bytes per u32
             curr = curr.add((name_cstr.count_bytes() + 1).div_ceil(4));
 
             curr = skip_nops(curr)?;
 
-            match FdtTokens::try_from(*curr)? {
-                FdtTokens::BeginNode => {
-                    return Ok(FdtNode {
-                        name,
-                        props_addr: None,
-                        children_addr: Some(curr),
-                        str_block_ptr,
-                    });
-                }
-                FdtTokens::EndNode => {
-                    return Ok(FdtNode {
-                        name,
-                        props_addr: None,
-                        children_addr: None,
-                        str_block_ptr,
-                    });
-                }
-                FdtTokens::End => return Err(FdtParsingError::MalformedTree),
-                FdtTokens::Nop => unreachable!(), // due to skipping right before
-                FdtTokens::Property => {}         // continue
-            }
+            let props_ptr = curr;
 
-            let props_addr = curr;
-
-            loop {
-                let token = FdtTokens::try_from(*curr)?;
+            let mut children_ptr = None;
+            let mut depth = 0;
+            while let Ok(token) = FdtTokens::try_from(*curr) {
                 match token {
                     FdtTokens::BeginNode => {
-                        return Ok(FdtNode {
-                            name,
-                            props_addr: Some(props_addr),
-                            children_addr: Some(curr),
-                            str_block_ptr,
-                        });
+                        depth += 1;
+
+                        if children_ptr.is_none() {
+                            children_ptr = Some(curr);
+                        }
+
+                        curr = curr.add(1);
+
+                        // Skip name
+                        let name_cstr = CStr::from_ptr(curr as *const u8);
+                        curr = curr.add((name_cstr.count_bytes() + 1).div_ceil(4));
                     }
                     FdtTokens::EndNode => {
-                        return Ok(FdtNode {
-                            name,
-                            props_addr: Some(props_addr),
-                            children_addr: None,
-                            str_block_ptr,
-                        });
+                        if depth == 0 {
+                            // End of current node
+                            let end_ptr = curr;
+                            let has_props = props_ptr != curr;
+
+                            let node = FdtNode {
+                                name,
+                                props_ptr: if has_props { Some(props_ptr) } else { None },
+                                children_ptr,
+                                str_block_ptr,
+                                end_ptr,
+                            };
+                            return Ok(node);
+                        } else {
+                            // End of nested node
+                            depth -= 1;
+                            curr = curr.add(1);
+                        }
                     }
-                    FdtTokens::End => return Err(FdtParsingError::MalformedTree),
+                    FdtTokens::End => {
+                        // Should not happen, EndNode should be before it
+                        return Err(FdtParsingError::EarlyEnd);
+                    }
                     FdtTokens::Property => {
+                        // Skip property
                         let length = u32::from_be(*curr.add(1));
                         curr = curr.add(3 + length.div_ceil(4) as usize);
                     }
-                    FdtTokens::Nop => {}
+                    FdtTokens::Nop => {
+                        // Skip NOP
+                        curr = curr.add(1);
+                    }
                 }
+                curr = skip_nops(curr)?;
             }
+
+            // Return the error that caused the escape from the loop
+            Err(FdtTokens::try_from(*curr).err().unwrap())
         }
+    }
+
+    pub fn end(&self) -> *const u32 {
+        self.end_ptr
     }
 }

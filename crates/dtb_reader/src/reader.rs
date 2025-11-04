@@ -69,11 +69,11 @@ impl DtbReader {
     }
 
     pub fn reserve_entry_iter(&self) -> impl Iterator<Item = FdtReserveEntry> {
-        let start_addr = unsafe {
+        let start_ptr = unsafe {
             self.ptr
                 .byte_offset(self.fdt_header.off_mem_rsvmap as isize)
         };
-        FtdReserveEntryIter::new(start_addr)
+        FtdReserveEntryIter::new(start_ptr)
     }
 
     pub fn root_node(&self) -> Result<impl FdtTreeNode, FdtParsingError> {

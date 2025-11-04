@@ -1,5 +1,6 @@
 use crate::tree::FdtParsingError;
 
+#[derive(Debug)]
 pub enum FdtTokens {
     BeginNode,
     EndNode,

@@ -50,12 +50,6 @@ pub extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     let dtb = DtbReader::new(dtb_ptr).expect("failed to parse DTB");
     let dtb_root = dtb.root_node().unwrap();
 
-    log(format!("DTB Header: {:?}\n", dtb.fdt_header));
-    log(format!("DTB Root Name: {:?}\n", dtb_root.name()));
-    for prop in dtb_root.properties() {
-        log(format!("DTB Property: {:?}\n", prop));
-    }
-
     log("Initializing process manager...\n");
     let process_manager = ProcessManager::default();
     log("Process manager initialized.\n");

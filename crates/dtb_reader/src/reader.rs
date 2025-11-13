@@ -1,5 +1,5 @@
 use crate::{
-    FdtNode, FdtTreeNode,
+    FdtNode,
     reserve_entry::{FdtReserveEntry, FtdReserveEntryIter},
     tree::FdtParsingError,
 };
@@ -76,7 +76,7 @@ impl DtbReader {
         FtdReserveEntryIter::new(start_ptr)
     }
 
-    pub fn root_node(&self) -> Result<impl FdtTreeNode, FdtParsingError> {
+    pub fn root_node(&self) -> Result<FdtNode, FdtParsingError> {
         let start_ptr = unsafe { self.ptr.byte_offset(self.fdt_header.off_dt_struct as isize) };
         let str_block_ptr = unsafe {
             self.ptr

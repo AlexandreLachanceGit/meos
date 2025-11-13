@@ -24,12 +24,6 @@ impl From<Utf8Error> for FdtParsingError {
     }
 }
 
-pub trait FdtTreeNode {
-    fn name(&self) -> &'static str;
-    fn properties(&self) -> impl Iterator<Item = FdtProperty>;
-    fn children(&self) -> impl Iterator<Item = impl FdtTreeNode>;
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct FdtNode {
     name: &'static str,
@@ -39,23 +33,31 @@ pub struct FdtNode {
     end_ptr: *const u32,
 }
 
-impl FdtTreeNode for FdtNode {
-    fn name(&self) -> &'static str {
+impl FdtNode {
+    pub fn name(&self) -> &'static str {
         self.name
     }
 
-    fn properties(&self) -> impl Iterator<Item = FdtProperty> {
+    pub fn properties(&self) -> impl Iterator<Item = FdtProperty> {
         PropertyIter::new(self.props_ptr, self.str_block_ptr)
     }
 
-    fn children(&self) -> impl Iterator<Item = impl FdtTreeNode> {
+    pub fn children(&self) -> impl Iterator<Item = FdtNode> {
         ChildNodeIter::new(self.children_ptr, self.str_block_ptr)
+    }
+
+    pub fn get_child(&self, name: &str) -> Option<FdtNode> {
+        ChildNodeIter::new(self.children_ptr, self.str_block_ptr).find(|c| c.name() == name)
+    }
+
+    pub fn get_property(&self, name: &str) -> Option<FdtProperty> {
+        PropertyIter::new(self.props_ptr, self.str_block_ptr).find(|p| p.name == name)
     }
 }
 
 impl FdtNode {
     // https://devicetree-specification.readthedocs.io/en/stable/flattened-format.html#tree-structure
-    pub fn parse(
+    pub(crate) fn parse(
         node_start_ptr: *const u32,
         str_block_ptr: *const u8,
     ) -> Result<FdtNode, FdtParsingError> {
@@ -138,7 +140,7 @@ impl FdtNode {
         }
     }
 
-    pub fn end(&self) -> *const u32 {
+    pub(crate) fn end(&self) -> *const u32 {
         self.end_ptr
     }
 }

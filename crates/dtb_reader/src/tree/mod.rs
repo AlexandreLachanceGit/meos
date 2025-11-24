@@ -3,4 +3,4 @@ mod node;
 mod properties;
 mod tokens;
 
-pub use node::{FdtNode, FdtParsingError};
+pub use node::{DeviceTreeNode, ParsingError};

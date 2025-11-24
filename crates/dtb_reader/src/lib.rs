@@ -4,5 +4,5 @@ mod reader;
 mod reserve_entry;
 mod tree;
 
-pub use reader::{DtbReader, FdtHeader};
-pub use tree::FdtNode;
+pub use reader::DtbReader;
+pub use tree::DeviceTreeNode;

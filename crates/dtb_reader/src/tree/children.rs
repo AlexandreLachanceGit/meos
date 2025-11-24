@@ -1,6 +1,6 @@
 use crate::{
-    FdtNode,
-    tree::tokens::{FdtTokens, skip_nops},
+    DeviceTreeNode,
+    tree::tokens::{Tokens, skip_nops},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -19,19 +19,19 @@ impl ChildNodeIter {
 }
 
 impl Iterator for ChildNodeIter {
-    type Item = FdtNode;
+    type Item = DeviceTreeNode;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut curr_ptr = self.curr.take()?;
 
         curr_ptr = skip_nops(curr_ptr).unwrap();
 
-        let token = unsafe { FdtTokens::try_from(*curr_ptr).unwrap() };
-        if !matches!(token, FdtTokens::BeginNode) {
+        let token = unsafe { Tokens::try_from(*curr_ptr).unwrap() };
+        if !matches!(token, Tokens::BeginNode) {
             return None;
         }
 
-        let node = FdtNode::parse(curr_ptr, self.str_block_ptr).unwrap();
+        let node = DeviceTreeNode::parse(curr_ptr, self.str_block_ptr).unwrap();
         self.curr = Some(unsafe { node.end().add(1) }); // Add 1 to skip EndNode
 
         Some(node)

@@ -1,9 +1,9 @@
 use core::{ffi::CStr, ptr::slice_from_raw_parts};
 
-use crate::tree::tokens::{FdtTokens, skip_nops};
+use crate::tree::tokens::{Tokens, skip_nops};
 
 #[derive(Debug, Clone, Copy)]
-pub struct FdtProperty {
+pub struct NodeProperty {
     pub name: &'static str,
     pub value: &'static [u8],
 }
@@ -24,15 +24,15 @@ impl PropertyIter {
 }
 
 impl Iterator for PropertyIter {
-    type Item = FdtProperty;
+    type Item = NodeProperty;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut curr_ptr = self.curr.take()?;
 
         curr_ptr = skip_nops(curr_ptr).unwrap();
 
-        let token = unsafe { FdtTokens::try_from(*curr_ptr).unwrap() };
-        if !matches!(token, FdtTokens::Property) {
+        let token = unsafe { Tokens::try_from(*curr_ptr).unwrap() };
+        if !matches!(token, Tokens::Property) {
             return None;
         }
 
@@ -53,7 +53,7 @@ impl Iterator for PropertyIter {
 
             let name = CStr::from_ptr(str_ptr).to_str().unwrap();
 
-            Some(FdtProperty { name, value })
+            Some(NodeProperty { name, value })
         }
     }
 }

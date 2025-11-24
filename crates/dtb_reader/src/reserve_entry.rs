@@ -1,34 +1,34 @@
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct FdtReserveEntry {
+pub struct MemoryReserveEntry {
     address: u64,
     size: u64,
 }
 
 #[derive(Debug, Default)]
-pub struct FtdReserveEntryIter {
-    start: *const FdtReserveEntry,
+pub struct MemoryReserveEntryIter {
+    start: *const MemoryReserveEntry,
     curr: usize,
 }
 
-impl FtdReserveEntryIter {
-    pub fn new(start: *const u32) -> FtdReserveEntryIter {
-        FtdReserveEntryIter {
-            start: start as *const FdtReserveEntry,
+impl MemoryReserveEntryIter {
+    pub fn new(start: *const u32) -> MemoryReserveEntryIter {
+        MemoryReserveEntryIter {
+            start: start as *const MemoryReserveEntry,
             curr: 0,
         }
     }
 }
 
-impl Iterator for FtdReserveEntryIter {
-    type Item = FdtReserveEntry;
+impl Iterator for MemoryReserveEntryIter {
+    type Item = MemoryReserveEntry;
 
     fn next(&mut self) -> Option<Self::Item> {
         let entry = unsafe { &*self.start.add(self.curr) };
         self.curr += 1;
 
         match entry {
-            FdtReserveEntry {
+            MemoryReserveEntry {
                 address: 0,
                 size: 0,
             } => None,

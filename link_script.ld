@@ -1,7 +1,7 @@
 ENTRY(boot)
 
 SECTIONS {
-    . = 0x80200000;
+    . = 0x80200000; /* TODO: *NOT PLATFORM AGNOSTIC* Is there a way to make it dynamic? */
 
     .text :{
         KEEP(*(.text.boot));
@@ -23,11 +23,9 @@ SECTIONS {
     }
 
     . = ALIGN(16);
-    . += 128 * 1024; /* 128KB */
+    . += 128 * 1024; /* 128KB stack */
     _STACK_PTR = .;
 
     . = ALIGN(4096);
-    _HEAP_START = .;
-    . += 64 * 1024 * 1024; /* 64MB */
-    _HEAP_END = .;
-  }
+    _KERNEL_END = .;
+}

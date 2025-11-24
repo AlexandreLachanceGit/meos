@@ -14,6 +14,7 @@ bench = false
 allocator.workspace = true
 dtb_reader.workspace = true
 log.workspace = true
+drivers.workspace = true
 
 spin.workspace = true
 riscv.workspace = true

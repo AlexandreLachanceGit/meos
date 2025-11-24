@@ -9,8 +9,10 @@ mod time;
 
 use alloc::format;
 use core::arch::{asm, global_asm};
+use core::ffi::CStr;
 use core::panic::PanicInfo;
-use dtb_reader::{DtbReader, FdtTreeNode};
+use drivers::DriverManager;
+use dtb_reader::DtbReader;
 use log::log;
 
 use allocator::{BumpAllocator, GlobalAllocator};
@@ -23,8 +25,7 @@ static GLOBAL_ALLOCATOR: GlobalAllocator<BumpAllocator> = GlobalAllocator::new()
 
 global_asm!(include_str!("asm/riscv64/entry.s"));
 unsafe extern "C" {
-    static mut _HEAP_START: usize;
-    static mut _HEAP_END: usize;
+    static mut _KERNEL_END: usize;
 }
 
 global_asm!(include_str!("asm/riscv64/switch.s"));
@@ -33,7 +34,7 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
+pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     // Single threaded for now
     if hw_thread_id != 0 {
         loop {
@@ -41,14 +42,20 @@ pub extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
         }
     }
 
-    log("Initializing global allocator...\n");
-    unsafe {
-        GLOBAL_ALLOCATOR.init(_HEAP_START, _HEAP_END);
-    }
-    log("Global allocator initialized.\n");
+    let dtb = unsafe { DtbReader::new(dtb_ptr).expect("failed to parse DTB") };
+    let dtb_root = dtb.root_node();
 
-    let dtb = DtbReader::new(dtb_ptr).expect("failed to parse DTB");
-    let dtb_root = dtb.root_node().unwrap();
+    init_allocator(dtb_root);
+
+    let driver_manager = DriverManager::init_drivers(&dtb_root);
+
+    let chosen = dtb_root.get_child("chosen").expect("no chosen node in DTB");
+    let stdout_path = CStr::from_bytes_until_nul(chosen.get_property("stdout-path").unwrap().value)
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    log(format!("Stdout Path: {stdout_path}\n"));
 
     log("Initializing process manager...\n");
     let process_manager = ProcessManager::default();
@@ -63,6 +70,31 @@ pub extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
         log(format!("RAM available: {available_ram} KB\n"));
         log(format!("Cycle: {}\n", riscv::register::cycle::read64()));
         log(format!("Time: {}\n", Time::get().as_millis()));
+    }
+}
+
+fn init_allocator(dtb_root: dtb_reader::DeviceTreeNode) {
+    for node in dtb_root.children() {
+        if let Some(device_type) = node.get_property("device_type")
+            && device_type.value == b"memory\0"
+        {
+            let reg = node.get_property("reg").unwrap().value;
+            let address = usize::from_be_bytes(reg[0..8].try_into().unwrap());
+            let size = usize::from_be_bytes(reg[8..16].try_into().unwrap());
+
+            let kernel_end = unsafe { _KERNEL_END };
+
+            let end = address + size;
+
+            let start = if kernel_end > address && kernel_end < end {
+                kernel_end
+            } else {
+                address
+            };
+
+            GLOBAL_ALLOCATOR.init(start, end);
+            break;
+        }
     }
 }
 

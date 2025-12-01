@@ -56,7 +56,7 @@ impl DeviceTreeNode {
     }
 
     pub fn get_property(&self, name: &str) -> Option<NodeProperty> {
-        PropertyIter::new(self.props_ptr, self.str_block_ptr).find(|p| p.name == name)
+        PropertyIter::new(self.props_ptr, self.str_block_ptr).find(|p| p.name() == name)
     }
 
     //

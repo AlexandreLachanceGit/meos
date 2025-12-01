@@ -1,5 +1,3 @@
-use core::ffi::CStr;
-
 use crate::{
     DeviceTreeNode,
     reserve_entry::{MemoryReserveEntry, MemoryReserveEntryIter},
@@ -122,9 +120,8 @@ impl DtbReader {
 
     pub fn resolve_alias(&self, alias: &str) -> Option<&str> {
         for prop in self.aliases_node?.properties() {
-            if prop.name == alias {
-                let cstr = CStr::from_bytes_until_nul(prop.value).ok()?;
-                return cstr.to_str().ok();
+            if prop.name() == alias {
+                return prop.value_str();
             }
         }
 

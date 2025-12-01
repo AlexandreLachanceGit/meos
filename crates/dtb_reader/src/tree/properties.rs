@@ -4,8 +4,23 @@ use crate::tree::tokens::{Tokens, skip_nops};
 
 #[derive(Debug, Clone, Copy)]
 pub struct NodeProperty {
-    pub name: &'static str,
-    pub value: &'static [u8],
+    name: &'static str,
+    value: &'static [u8],
+}
+
+impl NodeProperty {
+    pub fn name(&self) -> &str {
+        self.name
+    }
+
+    pub fn raw_value(&self) -> &[u8] {
+        self.value
+    }
+
+    pub fn value_str(&self) -> Option<&'static str> {
+        let cstr = CStr::from_bytes_until_nul(self.value).ok()?;
+        cstr.to_str().ok()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -9,3 +9,7 @@ bench = false
 doctest = false
 
 [dependencies]
+dtb_reader.workspace = true
+log.workspace = true
+
+spin.workspace = true

@@ -9,9 +9,8 @@ mod time;
 
 use alloc::format;
 use core::arch::{asm, global_asm};
-use core::ffi::CStr;
 use core::panic::PanicInfo;
-use drivers::DriverManager;
+use drivers::{DriverManager, UartDriver};
 use dtb_reader::DtbReader;
 use log::log;
 
@@ -47,12 +46,18 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
 
     init_allocator(dtb_root);
 
-    let driver_manager = DriverManager::init_drivers(&dtb_root);
+    let mut driver_manager = DriverManager::default();
+    driver_manager.load_drivers(&dtb_root);
 
     let chosen = dtb_root.get_child("chosen").expect("no chosen node in DTB");
-    let stdout_path = CStr::from_bytes_until_nul(chosen.get_property("stdout-path").unwrap().value)
+    let stdout_path = chosen
+        .get_property("stdout-path")
         .unwrap()
-        .to_str()
+        .value_str()
+        .unwrap();
+
+    let stdout_uart = driver_manager
+        .get_by_path::<dyn UartDriver>(stdout_path)
         .unwrap();
 
     log(format!("Stdout Path: {stdout_path}\n"));
@@ -76,9 +81,10 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
 fn init_allocator(dtb_root: dtb_reader::DeviceTreeNode) {
     for node in dtb_root.children() {
         if let Some(device_type) = node.get_property("device_type")
-            && device_type.value == b"memory\0"
+            && device_type.value_str().unwrap() == "memory"
         {
-            let reg = node.get_property("reg").unwrap().value;
+            let prop = node.get_property("reg").unwrap();
+            let reg = prop.raw_value();
             let address = usize::from_be_bytes(reg[0..8].try_into().unwrap());
             let size = usize::from_be_bytes(reg[8..16].try_into().unwrap());
 

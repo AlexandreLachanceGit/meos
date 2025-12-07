@@ -66,8 +66,6 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     let process_manager = ProcessManager::default();
     info!("Process manager initialized.");
 
-    debug!("HELLO");
-
     interupts::setup();
 
     loop {

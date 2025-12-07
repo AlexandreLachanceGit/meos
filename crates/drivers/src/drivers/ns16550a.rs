@@ -1,4 +1,4 @@
-use core::ptr;
+use core::{fmt::Write, ptr};
 
 use alloc::sync::Arc;
 use dtb_reader::DeviceTreeNode;
@@ -16,7 +16,7 @@ impl Driver for Ns16550a {
         let address: Option<usize> = node.get_property("reg").and_then(|prop| {
             let bytes = prop.raw_value();
             if bytes.len() >= 4 {
-                let addr_bytes: [u8; 4] = bytes[4..7].try_into().ok()?;
+                let addr_bytes: [u8; 4] = bytes[4..8].try_into().ok()?;
                 Some(u32::from_be_bytes(addr_bytes) as usize)
             } else {
                 None
@@ -54,5 +54,14 @@ impl UartDriver for Ns16550a {
 
     fn set_baud(&mut self, _baud: u32) {
         todo!()
+    }
+}
+
+impl Write for Ns16550a {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        for char in s.chars() {
+            self.put_char(char);
+        }
+        Ok(())
     }
 }

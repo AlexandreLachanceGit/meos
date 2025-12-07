@@ -61,6 +61,9 @@ dependencies = [
 [[package]]
 name = "log"
 version = "0.1.0"
+dependencies = [
+ "spin",
+]
 
 [[package]]
 name = "paste"

@@ -7,12 +7,11 @@ mod interupts;
 mod process;
 mod time;
 
-use alloc::format;
 use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
 use drivers::{DriverManager, UartDriver};
 use dtb_reader::DtbReader;
-use log::log;
+use log::{add_logger, debug, error, info};
 
 use allocator::{BumpAllocator, GlobalAllocator};
 
@@ -37,7 +36,7 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     // Single threaded for now
     if hw_thread_id != 0 {
         loop {
-            delay();
+            core::hint::spin_loop();
         }
     }
 
@@ -59,12 +58,15 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     let stdout_uart = driver_manager
         .get_by_path::<dyn UartDriver>(stdout_path)
         .unwrap();
+    add_logger(stdout_uart);
 
-    log(format!("Stdout Path: {stdout_path}\n"));
+    info!("Stdout Path: {stdout_path}");
 
-    log("Initializing process manager...\n");
+    info!("Initializing process manager...");
     let process_manager = ProcessManager::default();
-    log("Process manager initialized.\n");
+    info!("Process manager initialized.");
+
+    debug!("HELLO");
 
     interupts::setup();
 
@@ -72,9 +74,9 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
         delay();
         let available_ram = GLOBAL_ALLOCATOR.get_available() / 1024;
 
-        log(format!("RAM available: {available_ram} KB\n"));
-        log(format!("Cycle: {}\n", riscv::register::cycle::read64()));
-        log(format!("Time: {}\n", Time::get().as_millis()));
+        info!("RAM available: {available_ram} KB");
+        info!("Cycle: {}", riscv::register::cycle::read64());
+        info!("Time: {}", Time::get().as_millis());
     }
 }
 
@@ -113,15 +115,15 @@ fn delay() {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     if let Some(location) = info.location() {
-        log(format!(
-            "KERNEL PANIC @ line {}, col {} in {}: \nDetails:\n\t{}\n",
+        error!(
+            "KERNEL PANIC @ line {}, col {} in {}: \nDetails:\n\t{}",
             location.line(),
             location.column(),
             location.file(),
             info.message()
-        ));
+        );
     } else {
-        log(format!("KERNEL PANIC:\nDetails:\n\t{}\n", info.message()));
+        error!("KERNEL PANIC:\nDetails:\n\t{}\n", info.message());
     }
 
     loop {}

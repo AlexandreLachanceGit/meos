@@ -7,9 +7,8 @@ use alloc::{
     sync::Arc,
 };
 use dtb_reader::DeviceTreeNode;
+use log::info;
 use spin::Mutex;
-
-use log::log;
 
 use crate::registry::get_registry;
 
@@ -40,7 +39,7 @@ impl DriverManager {
             };
 
             if self.try_init_driver(&node, &current_path) {
-                log(format!("Loaded driver for '{current_path}'\n"));
+                info!("Loaded driver for '{current_path}'");
             }
 
             for child in node.children() {
@@ -106,4 +105,3 @@ impl DriverManager {
         Some(wrapper.clone())
     }
 }
-

@@ -3,7 +3,7 @@
 
 extern crate alloc;
 
-mod interupts;
+mod interrupts;
 mod process;
 mod time;
 
@@ -11,7 +11,7 @@ use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
 use drivers::{DriverManager, UartDriver};
 use dtb_reader::DtbReader;
-use log::{add_logger, debug, error, info};
+use log::{add_logger, error, info};
 
 use allocator::{BumpAllocator, GlobalAllocator};
 
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     let process_manager = ProcessManager::default();
     info!("Process manager initialized.");
 
-    interupts::setup();
+    interrupts::setup();
 
     loop {
         delay();

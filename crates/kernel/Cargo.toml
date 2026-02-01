@@ -18,3 +18,5 @@ drivers.workspace = true
 
 spin.workspace = true
 riscv.workspace = true
+sbi-rt.workspace = true
+

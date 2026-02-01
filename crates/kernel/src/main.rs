@@ -3,9 +3,9 @@
 
 extern crate alloc;
 
-mod interrupts;
 mod process;
 mod time;
+mod traps;
 
 use core::arch::{asm, global_asm};
 use core::panic::PanicInfo;
@@ -31,6 +31,14 @@ unsafe extern "C" {
     pub fn switch_context(prev_context_sp: *mut usize, next_context_sp: *const usize);
 }
 
+global_asm!(include_str!("asm/riscv64/trap_handler.s"));
+
+/// MEOS Kernel main entry point
+///
+/// # Safety
+///
+/// This function is unsafe because it is the entry point of the kernel and is called
+/// by the OpenSBI firmware.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     // Single threaded for now
@@ -63,10 +71,21 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     info!("Stdout Path: {stdout_path}");
 
     info!("Initializing process manager...");
-    let process_manager = ProcessManager::default();
+    let _ = ProcessManager::default();
     info!("Process manager initialized.");
 
-    interrupts::setup();
+    let timebase_frequency = dtb
+        .cpus_node()
+        .get_property("timebase-frequency")
+        .expect("cpus dtb node does not have timebase-frequency property")
+        .value_numeric()
+        .expect("malformed timebase-frequency property value");
+    let freq_mhz = (timebase_frequency as f64) / 1_000_000.0;
+    info!("Timer Frequency: {:.1} MHz", freq_mhz);
+    unsafe {
+        time::setup(timebase_frequency);
+        traps::setup(timebase_frequency);
+    }
 
     loop {
         delay();
@@ -74,7 +93,7 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
 
         info!("RAM available: {available_ram} KB");
         info!("Cycle: {}", riscv::register::cycle::read64());
-        info!("Time: {}", Time::get().as_millis());
+        info!("Time: {} ms", Time::get().as_millis());
     }
 }
 

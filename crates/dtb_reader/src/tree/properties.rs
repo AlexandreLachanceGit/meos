@@ -21,6 +21,14 @@ impl NodeProperty {
         let cstr = CStr::from_bytes_until_nul(self.value).ok()?;
         cstr.to_str().ok()
     }
+
+    pub fn value_numeric(&self) -> Option<u64> {
+        match self.value.len() {
+            4 => Some(u32::from_be_bytes(self.value.try_into().unwrap()) as u64),
+            8 => Some(u64::from_be_bytes(self.value.try_into().unwrap())),
+            _ => None, // Unexpected size
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

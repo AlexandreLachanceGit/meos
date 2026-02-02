@@ -41,13 +41,6 @@ global_asm!(include_str!("asm/riscv64/trap_handler.s"));
 /// by the OpenSBI firmware.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
-    // Single threaded for now
-    if hw_thread_id != 0 {
-        loop {
-            core::hint::spin_loop();
-        }
-    }
-
     let dtb = unsafe { DtbReader::new(dtb_ptr).expect("failed to parse DTB") };
     let dtb_root = dtb.root_node();
 
@@ -69,6 +62,7 @@ pub unsafe extern "C" fn main(hw_thread_id: usize, dtb_ptr: *const u32) -> ! {
     add_logger(stdout_uart);
 
     info!("Stdout Path: {stdout_path}");
+    info!("HW Thread ID: {hw_thread_id}");
 
     info!("Initializing process manager...");
     let _ = ProcessManager::default();
